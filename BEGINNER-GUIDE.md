@@ -342,6 +342,201 @@ Done! Now every hour, your bot checks for inactive users and nudges them.
 
 ---
 
+## PART 4B: HOW NEW USERS GET INTO THE SYSTEM
+
+This is a really important question. You have a Google Sheet and a Telegram bot. But how do they connect? How does a new person go from "name on a spreadsheet" to "someone the bot can message"?
+
+### The Problem
+
+Here's the thing about Telegram bots: **a bot CANNOT message someone first**. This is a Telegram rule. The person must send the FIRST message to the bot. Only AFTER that can the bot message them.
+
+So you can't just put someone's name in the spreadsheet and have the bot message them. They need to come to the bot first.
+
+### The Solution: An Invite Link
+
+When you create a bot with BotFather, your bot gets a link like this:
+
+```
+https://t.me/razorpay_onboard_bot
+```
+
+You send this link to the user through some OTHER channel first. Think of it like this:
+
+```
+STEP 1: User signs up on Razorpay and drops off
+            ↓
+STEP 2: You add them to the Google Sheet
+         (name, business, stage - but telegram_chat_id is BLANK)
+            ↓
+STEP 3: You send them the bot link via EMAIL or SMS
+         "Hey Priya, we have a Telegram assistant that can
+          help you finish your Razorpay setup.
+          Click here: https://t.me/razorpay_onboard_bot"
+            ↓
+STEP 4: User clicks the link, opens Telegram, taps "Start"
+            ↓
+STEP 5: Bot receives the /start message
+         NOW the bot has their telegram_chat_id!
+            ↓
+STEP 6: Bot asks "What's your email or phone on Razorpay?"
+            ↓
+STEP 7: User replies "priya@email.com"
+            ↓
+STEP 8: Zapier looks up "priya@email.com" in the Google Sheet
+         FINDS the row → fills in the telegram_chat_id
+            ↓
+STEP 9: Now the system is connected!
+         The bot knows who this person is and what stage they're stuck at
+            ↓
+STEP 10: From now on, the automated nudge system works for them
+```
+
+### Think of it like this
+
+Imagine you run a shop. You have a notebook with customer names. But you don't have their phone numbers. You can't call them.
+
+So you put a sign at the shop entrance: "Text us on WhatsApp for help: 98XXXXXXXX"
+
+When a customer texts you, NOW you have their number. You write it in your notebook next to their name. Now you can message them anytime.
+
+The Telegram bot link is that sign. The `/start` message is them texting you. And Zapier writing the `telegram_chat_id` in the Google Sheet is you writing their number in your notebook.
+
+### How to build this in Zapier (Zap #3 - Welcome Flow)
+
+This is a NEW Zap. Here's how:
+
+#### 3a. Trigger
+
+1. Create a new Zap
+2. Trigger: "Telegram Bot" → "New Message"
+3. Connect your bot
+
+#### 3b. Check if the message is "/start"
+
+1. Action: "Filter by Zapier"
+2. Condition: Message Text equals "/start"
+
+#### 3c. Send a welcome message and ask who they are
+
+1. Action: "Telegram Bot" → "Send Message"
+2. Chat ID: (from the trigger)
+3. Text:
+```
+Welcome! 👋 I'm the Razorpay Onboarding Assistant.
+
+I help businesses complete their Razorpay setup quickly and smoothly.
+
+To get started, please share the email address or phone number you used to sign up on Razorpay.
+```
+
+#### 3d. Wait for their reply
+
+This is where it gets a bit tricky. Zapier doesn't "wait" for replies inside the same Zap. So Zap #1 (the reply handler you already built) handles this.
+
+When the user replies with their email, Zap #1 fires. But right now Zap #1 looks them up by `telegram_chat_id`, which isn't in the sheet yet. So we need to update Zap #1 to handle this case.
+
+#### 3e. Updated Zap #1 logic (handle both new and existing users)
+
+```
+User sends a message
+      ↓
+Try to look up by telegram_chat_id in Google Sheets
+      ↓
+  FOUND? ──────────── YES → Continue as normal
+      |                      (look up context, ask ChatGPT, reply)
+      NO
+      ↓
+The message is probably their email/phone
+      ↓
+Look up by EMAIL column in Google Sheets
+      ↓
+  FOUND? ──────────── YES → Write telegram_chat_id into that row
+      |                      Send: "Great! I found your account.
+      |                      You're at Stage X. Let me help!"
+      NO
+      ↓
+Send: "Hmm, I couldn't find that email.
+       Can you double-check and try again?
+       Or contact support@razorpay.com"
+```
+
+In Zapier, you do this with **Paths**:
+
+1. Path A: Google Sheets Lookup by `telegram_chat_id` succeeds → normal flow
+2. Path B: Lookup fails → try Google Sheets Lookup by `email` column → if found, update the row with `telegram_chat_id` and send welcome
+3. Path C: Both lookups fail → send "I can't find your account" message
+
+### What your Google Sheet looks like during this process
+
+**BEFORE the user clicks the bot link:**
+
+| user_id | telegram_chat_id | name | email | business_name | current_stage | status |
+|---------|-----------------|------|-------|---------------|---------------|--------|
+| U001 | _(empty)_ | Priya | priya@email.com | CraftBazaar | 3 | active |
+
+**AFTER the user texts the bot and shares their email:**
+
+| user_id | telegram_chat_id | name | email | business_name | current_stage | status |
+|---------|-----------------|------|-------|---------------|---------------|--------|
+| U001 | **111222333** | Priya | priya@email.com | CraftBazaar | 3 | active |
+
+Now `telegram_chat_id` is filled in. The hourly nudge Zap can reach this user.
+
+### Updated Google Sheet columns
+
+Add one new column to your sheet: **email**. Your columns should now be:
+
+| A | B | C | D | E | F | G | H | I | J | K | L |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| user_id | telegram_chat_id | name | **email** | business_name | business_type | current_stage | stage_name | last_activity | nudge_count | status | drop_off_reason |
+
+### How to add a new user (your actual workflow)
+
+Here's what YOU do when you want to add someone to the system:
+
+```
+1. Open Google Sheets
+2. Add a new row:
+   - user_id: U011
+   - telegram_chat_id: (leave BLANK)
+   - name: Amit Shah
+   - email: amit@techcorp.in
+   - business_name: TechCorp
+   - business_type: Pvt Ltd
+   - current_stage: 4
+   - stage_name: Bank Account
+   - last_activity: today's date
+   - nudge_count: 0
+   - status: active
+
+3. Send Amit an email or SMS:
+   "Hi Amit! Need help finishing your Razorpay setup?
+    Chat with our assistant: https://t.me/razorpay_onboard_bot"
+
+4. When Amit clicks the link and texts the bot:
+   - Bot asks for his email
+   - Amit types: amit@techcorp.in
+   - Zapier finds his row, fills in telegram_chat_id
+   - Bot says: "Found you! You're on Step 4 (Bank Account). Need help?"
+
+5. From now on, everything is automatic.
+```
+
+### For your demo/interview
+
+Since you're demoing this for your portfolio, you play BOTH roles:
+
+1. Add YOUR details in the Google Sheet (your name, a fake business)
+2. Leave `telegram_chat_id` blank
+3. Open your bot on Telegram
+4. Send `/start`
+5. Enter the email you put in the sheet
+6. Watch the magic happen - the bot recognizes you and starts helping
+
+This is actually a GREAT thing to show in a demo because it demonstrates the full lifecycle: unknown user → identified user → active conversation.
+
+---
+
 ## PART 5: COMMON QUESTIONS
 
 ### "Where does the user data come from?"
