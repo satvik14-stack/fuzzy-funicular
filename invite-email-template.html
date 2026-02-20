@@ -1,0 +1,115 @@
+<!--
+  EMAIL TEMPLATE — Razorpay Onboarding Bot Invite
+  ================================================
+  Use this in Zapier's Gmail "Send Email" step (Zap #1).
+
+  In the Zapier editor:
+    1. Click the "Body Type" dropdown and select "HTML"
+    2. Paste this entire template into the Body field
+    3. Replace the {{placeholders}} by clicking in each one and
+       selecting the matching field from the Google Sheets step:
+         {{name}}          →  select "name"
+         {{business_name}} →  select "business_name"
+         {{stage_name}}    →  select "stage_name"
+    4. Replace YOUR_BOT_USERNAME with your actual bot username
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f6f9; font-family: Arial, Helvetica, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f6f9; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #2962FF 0%, #0039CB 100%); padding: 32px 40px; border-radius: 12px 12px 0 0;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">
+                Razorpay Onboarding
+              </h1>
+              <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0 0; font-size: 14px;">
+                Your setup is waiting for you
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="background: #ffffff; padding: 36px 40px; border-left: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0;">
+
+              <p style="font-size: 16px; color: #333333; line-height: 1.6; margin: 0 0 16px 0;">
+                Hi {{name}},
+              </p>
+
+              <p style="font-size: 16px; color: #333333; line-height: 1.6; margin: 0 0 16px 0;">
+                I noticed you started setting up Razorpay for
+                <strong>{{business_name}}</strong> but haven't completed it yet.
+              </p>
+
+              <!-- Status Badge -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 20px 0;">
+                <tr>
+                  <td style="background: #EEF2FF; border-radius: 8px; padding: 16px 20px; border-left: 4px solid #2962FF;">
+                    <p style="margin: 0; font-size: 14px; color: #666;">Current Step</p>
+                    <p style="margin: 4px 0 0 0; font-size: 18px; color: #2962FF; font-weight: 600;">
+                      {{stage_name}}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="font-size: 16px; color: #333333; line-height: 1.6; margin: 0 0 24px 0;">
+                I have a Telegram assistant that can help you finish in minutes.
+                It'll answer any questions you have about the process.
+              </p>
+
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding: 8px 0 24px 0;">
+                    <!--[if mso]>
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="https://t.me/YOUR_BOT_USERNAME" style="height:50px;v-text-anchor:middle;width:300px;" arcsize="16%" strokecolor="#2962FF" fillcolor="#2962FF">
+                    <center style="color:#ffffff;font-family:Arial;font-size:16px;font-weight:bold;">Chat with Assistant on Telegram</center>
+                    </v:roundrect>
+                    <![endif]-->
+                    <a href="https://t.me/YOUR_BOT_USERNAME"
+                       style="background-color: #2962FF; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: 600; display: inline-block; mso-hide: all;">
+                      Chat with Assistant on Telegram
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="font-size: 14px; color: #888888; text-align: center; margin: 0 0 8px 0;">
+                Or open Telegram and search for <strong>@YOUR_BOT_USERNAME</strong>
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: #fafafa; padding: 24px 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 12px 12px;">
+              <p style="font-size: 13px; color: #999999; line-height: 1.5; margin: 0; text-align: center;">
+                This email was sent because you started the Razorpay onboarding process.
+                <br>
+                If you've already completed setup, please ignore this email.
+                <br><br>
+                <a href="https://razorpay.com" style="color: #2962FF; text-decoration: none;">razorpay.com</a>
+                &nbsp;|&nbsp;
+                <a href="mailto:support@razorpay.com" style="color: #2962FF; text-decoration: none;">support@razorpay.com</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
