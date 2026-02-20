@@ -171,7 +171,50 @@ Here's what happens when a small business owner signs up for Razorpay, and why t
 
 ## PART 4: HOW TO BUILD IT (STEP BY STEP)
 
-### Step 1: Create a Telegram Bot (10 minutes)
+There are 3 Zaps (automations) to build and they go in this order. I'm putting the new customer flow FIRST because that's where everything starts.
+
+```
+ZAP #1: "Email Invite"
+   Sends an email with the bot link to new users in the sheet
+   who don't have a chat_id yet.
+   THIS IS HOW THE BOT REACHES NEW PEOPLE.
+
+ZAP #2: "Reply Handler"
+   When someone messages the bot, figure out who they are,
+   save their chat_id, and reply using ChatGPT.
+   THIS IS HOW THE BOT TALKS.
+
+ZAP #3: "Auto Nudge"
+   Every hour, check the sheet for inactive users who DO
+   have a chat_id, and send them a reminder.
+   THIS IS HOW THE BOT FOLLOWS UP.
+```
+
+Here's how they connect for a brand new user:
+
+```
+YOU add Priya to Google Sheet (chat_id is blank)
+      ↓
+ZAP #1 sees blank chat_id → emails Priya the bot link
+      ↓
+Priya clicks link → opens Telegram → taps "Start"
+      ↓
+ZAP #2 catches the message → asks "What's your email?"
+      ↓
+Priya types her email → ZAP #2 finds her row →
+      WRITES chat_id into the sheet → "Found you!"
+      ↓
+Now chat_id is filled. Priya is connected.
+      ↓
+ZAP #3 can now send her nudges automatically.
+ZAP #2 handles all her replies with ChatGPT.
+```
+
+---
+
+### BEFORE YOU BUILD: Set up the basics (25 minutes)
+
+#### A. Create a Telegram Bot (10 minutes)
 
 1. Open Telegram on your phone
 2. Search for `@BotFather` (this is Telegram's official bot-making bot)
@@ -181,359 +224,506 @@ Here's what happens when a small business owner signs up for Razorpay, and why t
 6. It will ask: "What username?" Type: `razorpay_onboard_bot` (must end in "bot")
 7. BotFather will give you a long code called a TOKEN. It looks like: `6123456789:ABCdefGHIjklMNOpqrSTUvwxYZ`
 8. SAVE THIS TOKEN. You'll need it later.
+9. BotFather will also show your bot link: `https://t.me/razorpay_onboard_bot`. SAVE THIS TOO.
 
 Done! Your bot exists now. It can't do anything yet, but it exists.
 
-### Step 2: Create the Google Sheet (15 minutes)
+#### B. Create the Google Sheet (10 minutes)
 
 1. Go to sheets.google.com
 2. Create a new spreadsheet
 3. Name it: `Razorpay Onboarding Tracker`
-4. In Row 1, type these column headers:
-
-| A | B | C | D | E | F | G | H | I | J | K |
-|---|---|---|---|---|---|---|---|---|---|---|
-| user_id | telegram_chat_id | name | business_name | business_type | current_stage | stage_name | last_activity | nudge_count | status | drop_off_reason |
-
-5. Add some fake data in row 2 (for testing):
-
-| A | B | C | D | E | F | G | H | I | J | K |
-|---|---|---|---|---|---|---|---|---|---|---|
-| U001 | (leave blank for now) | Priya | CraftBazaar | Proprietorship | 3 | KYC Verification | 2026-02-17 | 0 | active | |
-
-You now have a "database" of users. In real life, this data would come from Razorpay's system, but for our demo, we fill it in manually.
-
-### Step 3: Create a Zapier Account (5 minutes)
-
-1. Go to zapier.com
-2. Sign up with Google (free)
-3. You're in. That's it.
-
-### Step 4: Build Zap #1 - "Reply to messages" (30 minutes)
-
-This is the most important one. When someone sends a message to your Telegram bot, this Zap catches it, thinks of a smart reply using ChatGPT, and sends it back.
-
-**Here's how, click by click:**
-
-#### 4a. Create the Trigger (what starts the Zap)
-
-1. In Zapier, click "Create Zap" (big orange button)
-2. For the TRIGGER, search for "Telegram Bot"
-3. Choose "New Message"
-4. It will ask you to connect your Telegram bot
-5. Paste your TOKEN from Step 1
-6. Test it by sending any message to your bot on Telegram
-7. Zapier should pick up the message. Click "Continue"
-
-#### 4b. Add Action 1: Look up the user in Google Sheets
-
-1. Click the "+" to add an action
-2. Search for "Google Sheets"
-3. Choose "Lookup Spreadsheet Row"
-4. Connect your Google account
-5. Select your spreadsheet: "Razorpay Onboarding Tracker"
-6. Lookup column: "telegram_chat_id"
-7. Lookup value: Select the "Chat ID" field from the Telegram trigger
-8. This finds the user's row in your spreadsheet
-
-#### 4c. Add Action 2: Ask ChatGPT what to say
-
-1. Click "+" again
-2. Search for "ChatGPT" or "OpenAI"
-3. Choose "Conversation"
-4. Connect your OpenAI account (you'll need an API key from platform.openai.com)
-5. Model: gpt-4o-mini
-6. System Prompt: Copy-paste from `zapier-openai-system-prompt.txt` in this repo
-   - Replace the {{variables}} with fields from Google Sheets (Zapier lets you click to insert these)
-7. User Message: Select the "Text" field from the Telegram trigger (this is what the user typed)
-
-#### 4d. Add Action 3: Send the reply back on Telegram
-
-1. Click "+" again
-2. Search for "Telegram Bot"
-3. Choose "Send Message"
-4. Chat ID: Select "Chat ID" from the Telegram trigger
-5. Text: Select the "Reply" from the ChatGPT action
-6. Turn on the Zap!
-
-#### What just happened?
-
-You built this flow:
-
-```
-User sends message on Telegram
-        ↓
-Zapier catches the message
-        ↓
-Zapier looks up the user in Google Sheets
-(finds their name, business, what stage they're stuck at)
-        ↓
-Zapier sends all that context + the user's message to ChatGPT
-        ↓
-ChatGPT generates a helpful reply
-        ↓
-Zapier sends that reply back to the user on Telegram
-```
-
-**Congratulations! You have a working AI bot!**
-
-### Step 5: Build Zap #2 - "Send nudges automatically" (30 minutes)
-
-This checks your spreadsheet every hour and sends messages to people who've been inactive.
-
-#### 5a. Trigger
-
-1. Create a new Zap
-2. Trigger: "Schedule by Zapier"
-3. Frequency: "Every Hour"
-
-#### 5b. Get users from the spreadsheet
-
-1. Action: "Google Sheets" → "Get Many Spreadsheet Rows"
-2. Select your spreadsheet
-3. This pulls all the rows
-
-#### 5c. Filter inactive users
-
-1. Action: "Filter by Zapier"
-2. Condition: "last_activity" is before "24 hours ago"
-3. AND: "status" equals "active"
-4. AND: "nudge_count" is less than "4"
-
-#### 5d. Route by stage
-
-1. Action: "Paths by Zapier"
-2. Path A: IF current_stage = 2 → send Stage 2 message
-3. Path B: IF current_stage = 3 → send Stage 3 message
-4. Path C: IF current_stage = 4 → send Stage 4 message
-5. (and so on for stages 5, 6, 7)
-
-#### 5e. Send the message
-
-1. At the end of each Path, add: "Telegram Bot" → "Send Message"
-2. Use the templates from `nudge-message-templates.md`
-3. Replace {{name}} and {{business_name}} with fields from Google Sheets
-
-#### 5f. Update the spreadsheet
-
-1. Action: "Google Sheets" → "Update Spreadsheet Row"
-2. Find the row for this user
-3. Set nudge_count = nudge_count + 1
-4. Set last_nudge_sent = current date/time
-
-Done! Now every hour, your bot checks for inactive users and nudges them.
-
-### Step 6: Test Everything (30 minutes)
-
-1. Open your Telegram bot
-2. Send it a message: "Hi"
-3. Check if Zap #1 picks it up and replies
-4. Put YOUR Telegram chat ID in the Google Sheet
-5. Set your last_activity to yesterday
-6. Manually run Zap #2 and see if you get a nudge
-7. Reply to the nudge and see if Zap #1 handles it
-
-### Step 7: Record a Demo (20 minutes)
-
-1. Screen-record yourself doing Step 6
-2. Show the Google Sheet, Zapier dashboard, and Telegram side by side
-3. Narrate what's happening
-4. Post it on LinkedIn and put it on your resume
-
----
-
-## PART 4B: HOW NEW USERS GET INTO THE SYSTEM
-
-This is a really important question. You have a Google Sheet and a Telegram bot. But how do they connect? How does a new person go from "name on a spreadsheet" to "someone the bot can message"?
-
-### The Problem
-
-Here's the thing about Telegram bots: **a bot CANNOT message someone first**. This is a Telegram rule. The person must send the FIRST message to the bot. Only AFTER that can the bot message them.
-
-So you can't just put someone's name in the spreadsheet and have the bot message them. They need to come to the bot first.
-
-### The Solution: An Invite Link
-
-When you create a bot with BotFather, your bot gets a link like this:
-
-```
-https://t.me/razorpay_onboard_bot
-```
-
-You send this link to the user through some OTHER channel first. Think of it like this:
-
-```
-STEP 1: User signs up on Razorpay and drops off
-            ↓
-STEP 2: You add them to the Google Sheet
-         (name, business, stage - but telegram_chat_id is BLANK)
-            ↓
-STEP 3: You send them the bot link via EMAIL or SMS
-         "Hey Priya, we have a Telegram assistant that can
-          help you finish your Razorpay setup.
-          Click here: https://t.me/razorpay_onboard_bot"
-            ↓
-STEP 4: User clicks the link, opens Telegram, taps "Start"
-            ↓
-STEP 5: Bot receives the /start message
-         NOW the bot has their telegram_chat_id!
-            ↓
-STEP 6: Bot asks "What's your email or phone on Razorpay?"
-            ↓
-STEP 7: User replies "priya@email.com"
-            ↓
-STEP 8: Zapier looks up "priya@email.com" in the Google Sheet
-         FINDS the row → fills in the telegram_chat_id
-            ↓
-STEP 9: Now the system is connected!
-         The bot knows who this person is and what stage they're stuck at
-            ↓
-STEP 10: From now on, the automated nudge system works for them
-```
-
-### Think of it like this
-
-Imagine you run a shop. You have a notebook with customer names. But you don't have their phone numbers. You can't call them.
-
-So you put a sign at the shop entrance: "Text us on WhatsApp for help: 98XXXXXXXX"
-
-When a customer texts you, NOW you have their number. You write it in your notebook next to their name. Now you can message them anytime.
-
-The Telegram bot link is that sign. The `/start` message is them texting you. And Zapier writing the `telegram_chat_id` in the Google Sheet is you writing their number in your notebook.
-
-### How to build this in Zapier (Zap #3 - Welcome Flow)
-
-This is a NEW Zap. Here's how:
-
-#### 3a. Trigger
-
-1. Create a new Zap
-2. Trigger: "Telegram Bot" → "New Message"
-3. Connect your bot
-
-#### 3b. Check if the message is "/start"
-
-1. Action: "Filter by Zapier"
-2. Condition: Message Text equals "/start"
-
-#### 3c. Send a welcome message and ask who they are
-
-1. Action: "Telegram Bot" → "Send Message"
-2. Chat ID: (from the trigger)
-3. Text:
-```
-Welcome! 👋 I'm the Razorpay Onboarding Assistant.
-
-I help businesses complete their Razorpay setup quickly and smoothly.
-
-To get started, please share the email address or phone number you used to sign up on Razorpay.
-```
-
-#### 3d. Wait for their reply
-
-This is where it gets a bit tricky. Zapier doesn't "wait" for replies inside the same Zap. So Zap #1 (the reply handler you already built) handles this.
-
-When the user replies with their email, Zap #1 fires. But right now Zap #1 looks them up by `telegram_chat_id`, which isn't in the sheet yet. So we need to update Zap #1 to handle this case.
-
-#### 3e. Updated Zap #1 logic (handle both new and existing users)
-
-```
-User sends a message
-      ↓
-Try to look up by telegram_chat_id in Google Sheets
-      ↓
-  FOUND? ──────────── YES → Continue as normal
-      |                      (look up context, ask ChatGPT, reply)
-      NO
-      ↓
-The message is probably their email/phone
-      ↓
-Look up by EMAIL column in Google Sheets
-      ↓
-  FOUND? ──────────── YES → Write telegram_chat_id into that row
-      |                      Send: "Great! I found your account.
-      |                      You're at Stage X. Let me help!"
-      NO
-      ↓
-Send: "Hmm, I couldn't find that email.
-       Can you double-check and try again?
-       Or contact support@razorpay.com"
-```
-
-In Zapier, you do this with **Paths**:
-
-1. Path A: Google Sheets Lookup by `telegram_chat_id` succeeds → normal flow
-2. Path B: Lookup fails → try Google Sheets Lookup by `email` column → if found, update the row with `telegram_chat_id` and send welcome
-3. Path C: Both lookups fail → send "I can't find your account" message
-
-### What your Google Sheet looks like during this process
-
-**BEFORE the user clicks the bot link:**
-
-| user_id | telegram_chat_id | name | email | business_name | current_stage | status |
-|---------|-----------------|------|-------|---------------|---------------|--------|
-| U001 | _(empty)_ | Priya | priya@email.com | CraftBazaar | 3 | active |
-
-**AFTER the user texts the bot and shares their email:**
-
-| user_id | telegram_chat_id | name | email | business_name | current_stage | status |
-|---------|-----------------|------|-------|---------------|---------------|--------|
-| U001 | **111222333** | Priya | priya@email.com | CraftBazaar | 3 | active |
-
-Now `telegram_chat_id` is filled in. The hourly nudge Zap can reach this user.
-
-### Updated Google Sheet columns
-
-Add one new column to your sheet: **email**. Your columns should now be:
+4. In Row 1, type these column headers (each in its own cell, A through L):
 
 | A | B | C | D | E | F | G | H | I | J | K | L |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| user_id | telegram_chat_id | name | **email** | business_name | business_type | current_stage | stage_name | last_activity | nudge_count | status | drop_off_reason |
+| user_id | telegram_chat_id | name | email | business_name | business_type | current_stage | stage_name | last_activity | nudge_count | status | invite_sent |
 
-### How to add a new user (your actual workflow)
+5. Add a test user in Row 2. Use YOUR real email so you can test it:
 
-Here's what YOU do when you want to add someone to the system:
+| A | B | C | D | E | F | G | H | I | J | K | L |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| U001 | _(leave empty)_ | Your Name | your.real@email.com | TestBiz | Proprietorship | 3 | KYC Verification | 2026-02-19 | 0 | active | no |
+
+Notice: `telegram_chat_id` is BLANK and `invite_sent` is "no". This is a new user who hasn't connected to the bot yet.
+
+#### C. Create a Zapier Account (5 minutes)
+
+1. Go to zapier.com
+2. Sign up with Google (free)
+3. You're in.
+
+---
+
+### ZAP #1: EMAIL INVITE (sends bot link to new users)
+
+This is the Zap that solves the "new customer problem." It finds users in your sheet who don't have a `telegram_chat_id` yet, and emails them an invite link to your Telegram bot.
+
+#### What it does in plain English:
 
 ```
-1. Open Google Sheets
-2. Add a new row:
-   - user_id: U011
-   - telegram_chat_id: (leave BLANK)
-   - name: Amit Shah
-   - email: amit@techcorp.in
-   - business_name: TechCorp
-   - business_type: Pvt Ltd
-   - current_stage: 4
-   - stage_name: Bank Account
-   - last_activity: today's date
-   - nudge_count: 0
-   - status: active
-
-3. Send Amit an email or SMS:
-   "Hi Amit! Need help finishing your Razorpay setup?
-    Chat with our assistant: https://t.me/razorpay_onboard_bot"
-
-4. When Amit clicks the link and texts the bot:
-   - Bot asks for his email
-   - Amit types: amit@techcorp.in
-   - Zapier finds his row, fills in telegram_chat_id
-   - Bot says: "Found you! You're on Step 4 (Bank Account). Need help?"
-
-5. From now on, everything is automatic.
+Every hour:
+  Look at the Google Sheet
+  Find anyone where:
+    - telegram_chat_id is EMPTY (they haven't connected yet)
+    - invite_sent is "no" (we haven't emailed them yet)
+    - status is "active"
+  Send them an email with the Telegram bot link
+  Mark invite_sent as "yes" so we don't email them again
 ```
 
-### For your demo/interview
+#### Click-by-click:
 
-Since you're demoing this for your portfolio, you play BOTH roles:
+##### Step 1: Create the trigger
 
-1. Add YOUR details in the Google Sheet (your name, a fake business)
-2. Leave `telegram_chat_id` blank
-3. Open your bot on Telegram
-4. Send `/start`
-5. Enter the email you put in the sheet
-6. Watch the magic happen - the bot recognizes you and starts helping
+1. In Zapier, click the big orange "Create Zap" button
+2. Search for **"Schedule by Zapier"**
+3. Event: **"Every Hour"**
+4. Click Continue, then Test, then Continue again
 
-This is actually a GREAT thing to show in a demo because it demonstrates the full lifecycle: unknown user → identified user → active conversation.
+##### Step 2: Get rows from the sheet
+
+1. Click the **"+"** button below the trigger
+2. Search for **"Google Sheets"**
+3. Event: choose **"Get Many Spreadsheet Rows"**
+4. Click Continue
+5. Connect your Google account (it will ask you to sign in)
+6. Spreadsheet: select **"Razorpay Onboarding Tracker"**
+7. Worksheet: select the sheet (usually "Sheet1")
+8. Click Continue, then Test
+
+##### Step 3: Filter to only new users
+
+1. Click **"+"** again
+2. Search for **"Filter by Zapier"**
+3. Set up these conditions (click "AND" to add each one):
+   - Field: **telegram_chat_id** → Condition: **Does not exist** (this means it's blank)
+   - AND: **status** → Condition: **Text exactly matches** → Value: **active**
+   - AND: **invite_sent** → Condition: **Text exactly matches** → Value: **no**
+4. Click Continue
+
+##### Step 4: Send the email
+
+1. Click **"+"** again
+2. Search for **"Gmail"** (or **"Email by Zapier"** if you don't want to use Gmail)
+3. Event: **"Send Email"**
+4. Connect your Gmail account
+5. Fill in:
+   - **To:** Click in the field, then select **"email"** from the Google Sheets data (the dropdown shows fields from earlier steps)
+   - **Subject:** `Need help finishing your Razorpay setup?`
+   - **Body:** (type this, but click to insert the {{fields}} from Google Sheets)
+
+```
+Hi {{name}},
+
+I noticed you started setting up Razorpay for {{business_name}}
+but haven't completed it yet.
+
+You're currently on: {{stage_name}}
+
+I have a Telegram assistant that can help you finish
+in minutes. It'll answer any questions you have.
+
+Tap here to chat: https://t.me/YOUR_BOT_USERNAME
+
+Talk soon!
+Razorpay Onboarding Team
+```
+
+   Replace `YOUR_BOT_USERNAME` with your actual bot username from BotFather.
+
+6. Click Continue, then Test (this will send a real email to your test user — which is you!)
+7. Check your inbox. You should see the email.
+
+##### Step 5: Mark the user as invited
+
+1. Click **"+"** again
+2. Search for **"Google Sheets"**
+3. Event: **"Update Spreadsheet Row"**
+4. Spreadsheet: **"Razorpay Onboarding Tracker"**
+5. Worksheet: your sheet
+6. Row: select the **Row Number** from the "Get Many Spreadsheet Rows" step
+7. Find the **invite_sent** column and type: **yes**
+8. Click Continue, then Test
+
+##### Step 6: Turn it on
+
+1. Click **"Publish"** (or "Turn on Zap")
+2. Give it a name: "Email Invite - New Users"
+
+##### What just happened?
+
+```
+Every hour, Zapier:
+  1. Looks at your Google Sheet
+  2. Finds users with no chat_id and invite_sent = "no"
+  3. Sends them a personalized email with the bot link
+  4. Marks invite_sent = "yes" so it doesn't email them again
+
+Your Google Sheet row changes from:
+
+  BEFORE:
+  | chat_id | name  | email           | invite_sent |
+  | (empty) | Priya | priya@email.com | no          |
+
+  AFTER:
+  | chat_id | name  | email           | invite_sent |
+  | (empty) | Priya | priya@email.com | yes         |
+
+The chat_id is STILL empty. That gets filled by Zap #2
+when Priya clicks the link and talks to the bot.
+```
+
+---
+
+### ZAP #2: REPLY HANDLER (talks to users + saves chat_id)
+
+This is the brain. It handles EVERY message that comes into the bot. It does TWO jobs:
+
+- **Job 1 (new users):** When someone messages the bot for the first time, figure out who they are, and save their `telegram_chat_id` into the Google Sheet.
+- **Job 2 (known users):** When a connected user sends a message, look up their context, ask ChatGPT, and reply.
+
+#### What it does in plain English:
+
+```
+Someone sends a message to the bot
+      ↓
+Look up their chat_id in Google Sheets
+      ↓
+Found? → YES → This is a known user
+  │              Ask ChatGPT for a smart reply
+  │              Send the reply
+  │
+  └──→ NO → This is someone new
+              Look up the message text as an EMAIL in Google Sheets
+              Found? → YES → Save their chat_id into that row
+              │               Send "Found your account!"
+              │
+              └──→ NO → Send "What's your email?"
+```
+
+#### Click-by-click:
+
+##### Step 1: Create the trigger
+
+1. Click **"Create Zap"**
+2. Search for **"Telegram Bot"**
+3. Event: **"New Message"**
+4. Connect your bot (paste your TOKEN from BotFather)
+5. Test it: go to Telegram, open your bot, send any message like "hello"
+6. Come back to Zapier, click **"Test trigger"** — it should find your message
+7. Click Continue
+
+##### Step 2: Look up the user by chat_id
+
+1. Click **"+"**
+2. Search for **"Google Sheets"**
+3. Event: **"Lookup Spreadsheet Row"**
+4. Spreadsheet: **"Razorpay Onboarding Tracker"**
+5. Worksheet: your sheet
+6. Lookup Column: **telegram_chat_id**
+7. Lookup Value: click in the field, select **"Chat Id"** from the Telegram trigger
+8. Click Continue, then Test
+9. IMPORTANT: The test will probably say "no row found" since your sheet doesn't have a chat_id yet. That's FINE. That's exactly what we're handling.
+
+##### Step 3: Split into paths
+
+1. Click **"+"**
+2. Search for **"Paths by Zapier"**
+
+This creates two paths. You'll set up each one:
+
+##### Step 3A: PATH A — "Known User" (chat_id was found)
+
+1. Click on **Path A**
+2. Rename it to **"Known User"**
+3. Set the rule:
+   - Field: select **"id"** (or any field) from the Google Sheets Lookup step
+   - Condition: **Exists**
+   - This means the lookup found a row — the user is already in the system
+
+4. Under Path A, click **"+"** → search **"ChatGPT"** or **"OpenAI"**
+5. Event: **"Conversation"**
+6. Connect your OpenAI account (you need an API key from platform.openai.com)
+7. Model: **gpt-4o-mini**
+8. System Prompt: Copy from `zapier-openai-system-prompt.txt` in this repo.
+   But replace the `{{variables}}` by clicking in the field and selecting the matching data from the Google Sheets Lookup:
+   - `{{name}}` → select **name** from Sheets
+   - `{{business_name}}` → select **business_name** from Sheets
+   - `{{business_type}}` → select **business_type** from Sheets
+   - `{{stage_name}}` → select **stage_name** from Sheets
+   - `{{current_stage}}` → select **current_stage** from Sheets
+9. User Message: select **"Text"** from the Telegram trigger (this is what the user typed)
+10. Click Continue, then Test
+
+11. Under Path A, click **"+"** again → search **"Telegram Bot"**
+12. Event: **"Send Message"**
+13. Chat ID: select **"Chat Id"** from the Telegram trigger
+14. Text: select the **reply/response** from the ChatGPT step
+15. Click Continue
+
+**Path A is done.** This handles all conversations with users who are already connected.
+
+##### Step 3B: PATH B — "New User" (chat_id was NOT found)
+
+1. Click on **Path B** (or click "+ Add Path" if it doesn't exist)
+2. Rename it to **"New User"**
+3. Set the rule:
+   - Field: select **"id"** (or any field) from the Google Sheets Lookup step
+   - Condition: **Does not exist**
+   - This means no row was found — the chat_id isn't in the sheet
+
+4. Under Path B, click **"+"** → search **"Google Sheets"**
+5. Event: **"Lookup Spreadsheet Row"**
+6. Spreadsheet: **"Razorpay Onboarding Tracker"**
+7. Worksheet: your sheet
+8. Lookup Column: **email**
+9. Lookup Value: select **"Text"** from the Telegram trigger (the user's message — hopefully their email)
+10. Click Continue, then Test
+
+Now we need ANOTHER split inside Path B:
+
+11. Under Path B, click **"+"** → search **"Paths by Zapier"** (yes, paths inside paths)
+
+##### Step 3B-1: SUB-PATH — "Email Found" (we matched the user)
+
+1. Click on the first sub-path
+2. Rename it to **"Email Found"**
+3. Set the rule:
+   - Field: select **"id"** (or any field) from the EMAIL lookup step (step 4 above, NOT step 2)
+   - Condition: **Exists**
+
+4. Click **"+"** → search **"Google Sheets"**
+5. Event: **"Update Spreadsheet Row"**
+6. Spreadsheet: **"Razorpay Onboarding Tracker"**
+7. Worksheet: your sheet
+8. Row: select **"Row Number"** from the EMAIL lookup step
+9. Find the column **telegram_chat_id** and click in the field
+10. Select **"Chat Id"** from the Telegram trigger (Step 1)
+11. Click Continue, then Test
+
+**THIS IS THE STEP THAT FILLS IN THE CHAT_ID.** This is the answer to the whole "new customer problem." Right here, Zapier takes the chat_id that Telegram gave it and writes it into the Google Sheet.
+
+12. Click **"+"** → search **"Telegram Bot"**
+13. Event: **"Send Message"**
+14. Chat ID: select **"Chat Id"** from the Telegram trigger
+15. Text: Type this (clicking to insert fields from the EMAIL lookup):
+
+```
+I found your account!
+
+Here's what I see:
+- Business: {{business_name}}
+- Current step: {{stage_name}} (Step {{current_stage}} of 7)
+
+Would you like help completing this step? Just tell me what you're stuck on and I'll guide you through it.
+```
+
+16. Click Continue
+
+##### Step 3B-2: SUB-PATH — "Email Not Found" (we don't know who this is)
+
+1. Click on the second sub-path
+2. Rename it to **"Email Not Found"**
+3. Set the rule:
+   - Field: select **"id"** from the EMAIL lookup step
+   - Condition: **Does not exist**
+
+4. Click **"+"** → search **"Telegram Bot"**
+5. Event: **"Send Message"**
+6. Chat ID: select **"Chat Id"** from the Telegram trigger
+7. Text:
+
+```
+Welcome! I'm the Razorpay Onboarding Assistant.
+
+To connect your account, please share the email address you used to sign up on Razorpay.
+
+(Type your email and send it as a message)
+```
+
+8. Click Continue
+
+##### Step 4: Turn it on
+
+1. Click **"Publish"**
+2. Name it: "Reply Handler - Bot Brain"
+
+##### Here's what the full Zap looks like:
+
+```
+TRIGGER: Telegram Bot - New Message
+  │
+  ├─ STEP 2: Google Sheets - Lookup by telegram_chat_id
+  │
+  └─ STEP 3: Paths
+       │
+       ├── PATH A: "Known User" (chat_id found in sheet)
+       │     │
+       │     ├─ ChatGPT: Generate smart reply using user's context
+       │     │
+       │     └─ Telegram: Send the ChatGPT reply
+       │
+       └── PATH B: "New User" (chat_id NOT in sheet)
+             │
+             ├─ Google Sheets: Lookup by EMAIL (using message text)
+             │
+             └─ Sub-Paths:
+                  │
+                  ├── "Email Found":
+                  │     │
+                  │     ├─ Google Sheets: UPDATE ROW
+                  │     │  (writes telegram_chat_id into the row)
+                  │     │  *** THIS SOLVES THE NEW CUSTOMER PROBLEM ***
+                  │     │
+                  │     └─ Telegram: "Found your account! You're at..."
+                  │
+                  └── "Email Not Found":
+                        │
+                        └─ Telegram: "What's your email on Razorpay?"
+```
+
+---
+
+### ZAP #3: AUTO NUDGE (sends reminders to inactive users)
+
+This only works for users who ALREADY have a `telegram_chat_id` in the sheet. Zap #1 and #2 make sure that happens first.
+
+#### What it does in plain English:
+
+```
+Every hour:
+  Look at Google Sheet
+  Find anyone where:
+    - telegram_chat_id is NOT empty (they're connected)
+    - last_activity is more than 24 hours ago (they've gone quiet)
+    - status is "active"
+    - nudge_count is less than 4 (don't spam them)
+  Send them a stage-specific nudge message on Telegram
+  Update nudge_count so we track how many we've sent
+```
+
+#### Click-by-click:
+
+##### Step 1: Create the trigger
+
+1. Click **"Create Zap"**
+2. Search for **"Schedule by Zapier"**
+3. Event: **"Every Hour"**
+4. Click Continue
+
+##### Step 2: Get rows from the sheet
+
+1. Click **"+"**
+2. Search for **"Google Sheets"** → **"Get Many Spreadsheet Rows"**
+3. Select your spreadsheet and worksheet
+4. Click Continue, then Test
+
+##### Step 3: Filter to only connected, inactive users
+
+1. Click **"+"**
+2. Search for **"Filter by Zapier"**
+3. Set these conditions:
+   - **telegram_chat_id** → **Exists** (not empty — they're connected)
+   - AND: **status** → **Text exactly matches** → **active**
+   - AND: **nudge_count** → **Number less than** → **4**
+   - AND: **last_activity** → **Date is before** → use Zapier's date math to say "24 hours ago"
+
+For the date comparison: In the value field, you can type `{{zap_meta_human_now}}` and Zapier will compare it. Or use a **"Code by Zapier"** step to calculate if more than 24 hours have passed. The simplest way: use **"Formatter by Zapier"** → **"Date/Time"** → **"Compare Dates"** before the filter.
+
+4. Click Continue
+
+##### Step 4: Route by stage (send different messages)
+
+1. Click **"+"**
+2. Search for **"Paths by Zapier"**
+3. Set up one path per stage:
+
+**Path A: current_stage = 2 (Business Profile)**
+- Rule: current_stage **Text exactly matches** 2
+- Action: Telegram Bot → Send Message
+- Chat ID: select **telegram_chat_id** from Google Sheets
+- Text: Copy the Stage 2 message from `nudge-message-templates.md`
+  - Replace {{name}} by clicking and selecting **name** from Sheets
+  - Replace {{business_name}} by selecting **business_name** from Sheets
+
+**Path B: current_stage = 3 (KYC)**
+- Same setup, use Stage 3 message
+
+**Path C: current_stage = 4 (Bank Account)**
+- Same setup, use Stage 4 message
+
+**Path D: current_stage = 5 (Website)**
+- Same setup, use Stage 5 message
+
+**Path E: current_stage = 6 (Integration)**
+- Same setup, use Stage 6 message
+
+**Path F: current_stage = 7 (Go Live)**
+- Same setup, use Stage 7 message
+
+##### Step 5: Update the spreadsheet
+
+At the end of EACH path (after the Telegram Send Message), add:
+
+1. Click **"+"**
+2. Search for **"Google Sheets"** → **"Update Spreadsheet Row"**
+3. Row: select **Row Number** from the Get Many Rows step
+4. Set **nudge_count** to: the current nudge_count + 1 (use Formatter to add 1)
+5. Set **last_activity** to today's date/time
+
+##### Step 6: Turn it on
+
+1. Click **"Publish"**
+2. Name it: "Auto Nudge - Hourly Check"
+
+---
+
+### TESTING THE WHOLE THING (30 minutes)
+
+Here's how to test the COMPLETE flow from new user to conversation:
+
+#### Test 1: The email invite
+
+1. Make sure your Google Sheet has a row with YOUR real email, blank chat_id, and invite_sent = "no"
+2. Manually run Zap #1 (click "Run" in Zapier)
+3. Check your email inbox — you should get the invite email with the bot link
+4. Check Google Sheets — `invite_sent` should now say "yes"
+
+#### Test 2: Connecting to the bot
+
+1. Click the bot link in the email you received
+2. Telegram opens, you see your bot
+3. Tap **"Start"**
+4. The bot should say: "Welcome! Please share the email you used on Razorpay"
+5. Type your email (the same one in the Google Sheet)
+6. The bot should say: "Found your account! You're at KYC Verification..."
+7. Check Google Sheets — YOUR `telegram_chat_id` should now be FILLED IN
+
+#### Test 3: Having a conversation
+
+1. Type something to the bot: "I don't have GST, what do I do?"
+2. The bot should reply with a helpful ChatGPT-powered answer about how GST isn't mandatory
+3. Ask another question, see if it keeps the context
+
+#### Test 4: Getting a nudge
+
+1. In Google Sheets, change your `last_activity` to 2 days ago
+2. Manually run Zap #3
+3. You should get a nudge message on Telegram about KYC (since you're at stage 3)
+4. Check Google Sheets — your `nudge_count` should increase by 1
+
+If all 4 tests pass, your bot is fully working.
+
+---
+
+### RECORDING YOUR DEMO (20 minutes)
+
+1. Reset your Google Sheet row (clear chat_id, set invite_sent to "no")
+2. Start screen recording (show Google Sheet, Zapier, Telegram, and email side by side)
+3. Walk through all 4 tests, narrating what's happening
+4. Show the Google Sheet updating in real time
+5. Post on LinkedIn, add to resume
 
 ---
 
