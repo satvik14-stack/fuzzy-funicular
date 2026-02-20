@@ -1,0 +1,11 @@
+user_id,telegram_chat_id,name,email,business_name,business_type,current_stage,stage_name,last_activity,nudge_count,last_nudge_sent,status,drop_off_reason,notes
+U001,,Priya Mehta,priya.mehta@gmail.com,CraftBazaar,Proprietorship,3,KYC Verification,2026-02-17T14:00:00,0,,active,,telegram_chat_id blank - user hasn't connected yet
+U002,,Arjun Patel,arjun@devstack.io,DevStack Solutions,Pvt Ltd,5,Website Details,2026-02-16T09:30:00,0,,active,,telegram_chat_id blank - user hasn't connected yet
+U003,,Sneha Gupta,sneha.fitlife@gmail.com,FitLife Studio,Proprietorship,6,Integration,2026-02-18T16:00:00,0,,active,,telegram_chat_id blank - user hasn't connected yet
+U004,,Rajesh Kumar,rajesh@kisandirect.com,KisanDirect,Partnership,2,Business Profile,2026-02-15T11:00:00,0,,active,,telegram_chat_id blank - user hasn't connected yet
+U005,,Meera Joshi,meera.joshi@yahoo.com,StyleCircle,Proprietorship,5,Website Details,2026-02-14T08:00:00,0,,active,No website - sells on Instagram,telegram_chat_id blank - user hasn't connected yet
+U006,,Vikram Singh,vikram@techbridge.in,TechBridge IT,LLP,6,Integration,2026-02-17T12:00:00,0,,active,,telegram_chat_id blank - user hasn't connected yet
+U007,,Ananya Reddy,ananya.spiceroute@gmail.com,SpiceRoute,Proprietorship,3,KYC Verification,2026-02-13T10:00:00,0,,active,No GST registration,telegram_chat_id blank - user hasn't connected yet
+U008,,Karthik Nair,karthik@edulearn.co.in,EduLearn Academy,Pvt Ltd,4,Bank Account,2026-02-16T15:00:00,0,,active,Name mismatch with bank,telegram_chat_id blank - user hasn't connected yet
+U009,,Fatima Sheikh,fatima@greenglow.com,GreenGlow Organics,Proprietorship,7,Go Live,2026-02-18T09:00:00,0,,active,,telegram_chat_id blank - user hasn't connected yet
+U010,,Rohit Verma,rohit.verma@cloudnine.travel,CloudNine Travels,Partnership,3,KYC Verification,2026-02-12T11:00:00,0,,active,Worried about document security,telegram_chat_id blank - user hasn't connected yet
